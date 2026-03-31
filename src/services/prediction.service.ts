@@ -1,13 +1,17 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { invalidateNamespace } from "../lib/redis";
+import { UserPriceRange } from "../types/round.types";
 import { toDecimal, toNumber } from "../utils/decimal.util";
+import { ValidationError } from "../utils/errors";
 import logger from "../utils/logger";
+import {
+  findRangeByBounds,
+  parseRoundPriceRanges,
+  updateRangePool,
+  validateUserPriceRange,
+} from "../utils/price-range.util";
 import sorobanService from "./soroban.service";
-
-interface PriceRange {
-  min: number;
-  max: number;
-}
 
 export class PredictionService {
   /**
@@ -18,7 +22,7 @@ export class PredictionService {
     roundId: string,
     amount: number,
     side?: "UP" | "DOWN",
-    priceRange?: PriceRange,
+    priceRange?: UserPriceRange,
   ): Promise<any> {
     try {
       const prediction = await prisma.$transaction(async (tx) => {
@@ -58,14 +62,24 @@ export class PredictionService {
           }
         } else if (round.mode === "LEGENDS") {
           if (!priceRange) {
-            throw new Error("Price range is required for LEGENDS mode");
+            throw new ValidationError(
+              "Price range is required for LEGENDS mode",
+            );
           }
-          const ranges = round.priceRanges as any[];
-          const validRange = ranges.find(
-            (r) => r.min === priceRange.min && r.max === priceRange.max,
+          const priceRangeValidation = validateUserPriceRange(priceRange);
+          if (!priceRangeValidation.valid) {
+            throw new ValidationError(
+              `Price range must include numeric min and max with min < max`,
+            );
+          }
+          const ranges = parseRoundPriceRanges(round.priceRanges);
+          const validRange = findRangeByBounds(
+            ranges,
+            priceRange.min,
+            priceRange.max,
           );
           if (!validRange) {
-            throw new Error("Invalid price range");
+            throw new ValidationError("Invalid price range for this round");
           }
         } else {
           throw new Error("Invalid game mode");
@@ -108,7 +122,9 @@ export class PredictionService {
             userId,
             amount: amountNum,
             side,
-            priceRange: priceRange as any,
+            priceRange: priceRange
+              ? { min: priceRange.min, max: priceRange.max }
+              : undefined,
           },
         });
 
@@ -130,20 +146,18 @@ export class PredictionService {
             `Prediction submitted (UP_DOWN): user=${userId}, round=${roundId}, side=${side}`,
           );
         } else if (round.mode === "LEGENDS") {
-          const ranges = round.priceRanges as any[];
-          // Update price range pool (Note: JSON updates are not as atomic as increments in Prisma,
-          // but being inside the same transaction with the round read above provides baseline safety)
-          const updatedRanges = ranges.map((r) => {
-            if (r.min === priceRange!.min && r.max === priceRange!.max) {
-              return { ...r, pool: r.pool + amount };
-            }
-            return r;
-          });
+          const ranges = parseRoundPriceRanges(round.priceRanges);
+          const updatedRanges = updateRangePool(
+            ranges,
+            priceRange!.min,
+            priceRange!.max,
+            amount,
+          );
 
           await tx.round.update({
             where: { id: roundId },
             data: {
-              priceRanges: updatedRanges as any,
+              priceRanges: updatedRanges as unknown as Prisma.InputJsonValue,
             },
           });
 
@@ -174,7 +188,7 @@ export class PredictionService {
       roundId: string;
       amount: number;
       side?: "UP" | "DOWN";
-      priceRange?: PriceRange;
+      priceRange?: UserPriceRange;
     }>,
   ): Promise<{
     success: boolean;

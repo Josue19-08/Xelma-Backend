@@ -4,7 +4,13 @@ import websocketService from "./websocket.service";
 import notificationService from "./notification.service";
 import logger from "../utils/logger";
 import { prisma } from "../lib/prisma";
-import { ConflictError } from "../utils/errors";
+import { ConflictError, ValidationError } from "../utils/errors";
+import { RoundLifecycleOutcome } from "../types/round.types";
+
+interface LegendsPriceRange {
+  min: number;
+  max: number;
+}
 
 export class RoundService {
   /**
@@ -14,6 +20,7 @@ export class RoundService {
     mode: "UP_DOWN" | "LEGENDS",
     startPrice: number,
     durationMinutes: number,
+    customPriceRanges?: LegendsPriceRange[],
   ): Promise<any> {
     try {
       const gameMode = mode === "UP_DOWN" ? GameMode.UP_DOWN : GameMode.LEGENDS;
@@ -52,27 +59,18 @@ export class RoundService {
       // Mode 1 (LEGENDS): Define price ranges
       let priceRanges: any = null;
       if (mode === "LEGENDS") {
-        // Create 5 price ranges around the current price
-        const rangeWidth = startPrice * 0.05; // 5% range width
-        priceRanges = [
-          {
-            min: startPrice - rangeWidth * 2,
-            max: startPrice - rangeWidth,
-            pool: 0,
-          },
-          { min: startPrice - rangeWidth, max: startPrice, pool: 0 },
-          { min: startPrice, max: startPrice + rangeWidth, pool: 0 },
-          {
-            min: startPrice + rangeWidth,
-            max: startPrice + rangeWidth * 2,
-            pool: 0,
-          },
-          {
-            min: startPrice + rangeWidth * 2,
-            max: startPrice + rangeWidth * 3,
-            pool: 0,
-          },
-        ];
+        const rangesToUse =
+          customPriceRanges && customPriceRanges.length > 0
+            ? customPriceRanges
+            : this.generateDefaultLegendsRanges(startPrice);
+
+        this.validateLegendsRanges(rangesToUse);
+
+        priceRanges = rangesToUse.map((range) => ({
+          min: range.min,
+          max: range.max,
+          pool: 0,
+        }));
       }
 
       // Create round in database
@@ -180,14 +178,32 @@ export class RoundService {
   /**
    * Locks a round (no more predictions allowed)
    */
-  async lockRound(roundId: string): Promise<void> {
+  async lockRound(roundId: string): Promise<RoundLifecycleOutcome> {
     try {
+      const round = await prisma.round.findUnique({
+        where: { id: roundId },
+        select: { status: true },
+      });
+
+      if (!round) {
+        return RoundLifecycleOutcome.NO_OP;
+      }
+
+      if (round.status === "LOCKED") {
+        return RoundLifecycleOutcome.ALREADY_LOCKED;
+      }
+
+      if (round.status === "RESOLVED" || round.status === "CANCELLED") {
+        return RoundLifecycleOutcome.NO_OP;
+      }
+
       await prisma.round.update({
         where: { id: roundId },
         data: { status: "LOCKED" },
       });
 
       logger.info(`Round locked: ${roundId}`);
+      return RoundLifecycleOutcome.UPDATED;
     } catch (error) {
       logger.error("Failed to lock round:", error);
       throw error;
@@ -210,12 +226,16 @@ export class RoundService {
         },
       });
 
+      let updatedCount = 0;
       for (const round of expiredRounds) {
-        await this.lockRound(round.id);
+        const outcome = await this.lockRound(round.id);
+        if (outcome === RoundLifecycleOutcome.UPDATED) {
+          updatedCount++;
+        }
       }
 
-      if (expiredRounds.length > 0) {
-        logger.info(`Auto-locked ${expiredRounds.length} expired rounds`);
+      if (updatedCount > 0) {
+        logger.info(`Auto-locked ${updatedCount} expired rounds`);
       }
     } catch (error) {
       logger.error("Failed to auto-lock expired rounds:", error);
@@ -308,6 +328,50 @@ export class RoundService {
     } catch (error) {
       logger.error("Failed to get rounds history:", error);
       throw error;
+    }
+  }
+
+  private generateDefaultLegendsRanges(startPrice: number): LegendsPriceRange[] {
+    const rangeWidth = startPrice * 0.05;
+    return [
+      { min: startPrice - rangeWidth * 2, max: startPrice - rangeWidth },
+      { min: startPrice - rangeWidth, max: startPrice },
+      { min: startPrice, max: startPrice + rangeWidth },
+      { min: startPrice + rangeWidth, max: startPrice + rangeWidth * 2 },
+      { min: startPrice + rangeWidth * 2, max: startPrice + rangeWidth * 3 },
+    ];
+  }
+
+  private validateLegendsRanges(ranges: LegendsPriceRange[]): void {
+    if (!Array.isArray(ranges) || ranges.length < 2) {
+      throw new ValidationError("LEGENDS requires at least 2 price ranges");
+    }
+
+    const sorted = [...ranges].sort((a, b) => a.min - b.min);
+
+    for (let i = 0; i < sorted.length; i++) {
+      const range = sorted[i];
+
+      if (!Number.isFinite(range.min) || !Number.isFinite(range.max)) {
+        throw new ValidationError(
+          "Each LEGENDS price range must contain finite numeric min/max values",
+        );
+      }
+
+      if (range.min >= range.max) {
+        throw new ValidationError(
+          "Each LEGENDS price range must satisfy min < max",
+        );
+      }
+
+      if (i > 0) {
+        const prev = sorted[i - 1];
+        if (range.min < prev.max) {
+          throw new ValidationError(
+            "LEGENDS price ranges must not overlap",
+          );
+        }
+      }
     }
   }
 }
