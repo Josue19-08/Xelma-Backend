@@ -82,6 +82,7 @@ export class RoundService {
           endTime,
           startPrice,
           sorobanRoundId,
+          isSoroban: mode === "UP_DOWN" && sorobanService.isReady(),
           priceRanges: priceRanges
             ? JSON.parse(JSON.stringify(priceRanges))
             : null,

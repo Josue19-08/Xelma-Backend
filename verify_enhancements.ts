@@ -27,7 +27,7 @@ async function generateToken(role: UserRole) {
 
     return {
         user,
-        token: jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' }),
+        token: jwt.sign({ userId: user.id, walletAddress, role }, JWT_SECRET, { expiresIn: '1h' }),
     };
 }
 

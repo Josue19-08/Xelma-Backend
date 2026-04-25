@@ -2,6 +2,15 @@ import { Keypair, Networks, Transaction } from "@stellar/stellar-sdk";
 import type { Client as XelmaClient, BetSide, OraclePayload, RoundMode } from "@tevalabs/xelma-bindings";
 import logger from "../utils/logger";
 
+export interface SorobanHealth {
+  initialized: boolean;
+  contractId: string | null;
+  network: string;
+  rpcUrl: string;
+  hasAdminKey: boolean;
+  hasOracleKey: boolean;
+}
+
 export class SorobanService {
   private client: XelmaClient | null = null;
   private adminKeypair: Keypair | null = null;
@@ -26,6 +35,7 @@ export class SorobanService {
         logger.warn(
           "Soroban configuration or bindings missing. Soroban integration DISABLED.",
         );
+        this.initialized = false;
         return;
       }
 
@@ -46,6 +56,28 @@ export class SorobanService {
       logger.error("Failed to initialize Soroban service:", error);
       this.initialized = false;
     }
+  }
+
+  /**
+   * Returns the current health status of the Soroban service
+   */
+  async getHealth(): Promise<SorobanHealth> {
+    await this.ready;
+    return {
+      initialized: this.initialized,
+      contractId: process.env.SOROBAN_CONTRACT_ID || null,
+      network: process.env.SOROBAN_NETWORK || "testnet",
+      rpcUrl: process.env.SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org",
+      hasAdminKey: !!this.adminKeypair,
+      hasOracleKey: !!this.oracleKeypair,
+    };
+  }
+
+  /**
+   * Returns true if the service is initialized and ready to use
+   */
+  isReady(): boolean {
+    return this.initialized;
   }
 
   private async ensureInitialized(): Promise<void> {

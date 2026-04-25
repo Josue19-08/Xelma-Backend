@@ -1,6 +1,6 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router, Response, NextFunction } from "express";
 import notificationService from "../services/notification.service";
-import { authenticateUser } from "../middleware/auth.middleware";
+import { authenticateUser, AuthenticatedRequest } from "../middleware/auth.middleware";
 import { NotFoundError } from "../utils/errors";
 
 const router = Router();
@@ -10,9 +10,9 @@ const router = Router();
  * Get paginated notifications for the authenticated user
  * Query params: limit (default 20, max 100), offset (default 0), unreadOnly (optional boolean)
  */
-router.get("/", authenticateUser, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/", authenticateUser, (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = req.user.userId;
 
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
     const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
@@ -43,7 +43,7 @@ router.get("/", authenticateUser, async (req: Request, res: Response, next: Next
   } catch (error) {
     next(error);
   }
-});
+}) as any);
 
 /**
  * GET /api/notifications/unread-count
@@ -52,9 +52,9 @@ router.get("/", authenticateUser, async (req: Request, res: Response, next: Next
 router.get(
   "/unread-count",
   authenticateUser,
-  async (req: Request, res: Response, next: NextFunction) => {
+  (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = (req as any).userId;
+      const userId = req.user.userId;
 
       const count = await notificationService.getUnreadCount(userId);
 
@@ -65,16 +65,16 @@ router.get(
     } catch (error) {
       next(error);
     }
-  },
+  }) as any,
 );
 
 /**
  * GET /api/notifications/:id
  * Get a specific notification
  */
-router.get("/:id", authenticateUser, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/:id", authenticateUser, (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = req.user.userId;
     const { id } = req.params;
 
     const notification = await notificationService.getNotification(id, userId);
@@ -98,7 +98,7 @@ router.get("/:id", authenticateUser, async (req: Request, res: Response, next: N
   } catch (error) {
     next(error);
   }
-});
+}) as any);
 
 /**
  * PATCH /api/notifications/:id/read
@@ -107,9 +107,9 @@ router.get("/:id", authenticateUser, async (req: Request, res: Response, next: N
 router.patch(
   "/:id/read",
   authenticateUser,
-  async (req: Request, res: Response, next: NextFunction) => {
+  (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = (req as any).userId;
+      const userId = req.user.userId;
       const { id } = req.params;
 
       const notification = await notificationService.markAsRead(id, userId);
@@ -129,7 +129,7 @@ router.patch(
     } catch (error) {
       next(error);
     }
-  },
+  }) as any,
 );
 
 /**
@@ -139,9 +139,9 @@ router.patch(
 router.patch(
   "/read-all",
   authenticateUser,
-  async (req: Request, res: Response, next: NextFunction) => {
+  (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = (req as any).userId;
+      const userId = req.user.userId;
 
       const count = await notificationService.markAllAsRead(userId);
 
@@ -153,16 +153,16 @@ router.patch(
     } catch (error) {
       next(error);
     }
-  },
+  }) as any,
 );
 
 /**
  * DELETE /api/notifications/:id
  * Delete a single notification
  */
-router.delete("/:id", authenticateUser, async (req: Request, res: Response, next: NextFunction) => {
+router.delete("/:id", authenticateUser, (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = req.user.userId;
     const { id } = req.params;
 
     const deleted = await notificationService.deleteNotification(id, userId);
@@ -178,15 +178,15 @@ router.delete("/:id", authenticateUser, async (req: Request, res: Response, next
   } catch (error) {
     next(error);
   }
-});
+}) as any);
 
 /**
  * DELETE /api/notifications
  * Delete all read notifications for the authenticated user
  */
-router.delete("/", authenticateUser, async (req: Request, res: Response, next: NextFunction) => {
+router.delete("/", authenticateUser, (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).userId;
+    const userId = req.user.userId;
 
     const count = await notificationService.deleteAllRead(userId);
 
@@ -198,6 +198,6 @@ router.delete("/", authenticateUser, async (req: Request, res: Response, next: N
   } catch (error) {
     next(error);
   }
-});
+}) as any);
 
 export default router;

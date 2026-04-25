@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "@jest/globals";
 import request from "supertest";
 import { Express } from "express";
+import { UserRole } from "@prisma/client";
 import { createApp } from "../index";
 import { generateToken } from "../utils/jwt.util";
 import * as stellarService from "../services/stellar.service";
@@ -88,7 +89,7 @@ describe("Auth Routes & JWT Guards (Issue #78)", () => {
     mockVerifySignature.mockResolvedValue(true);
 
     testUser = { id: TEST_USER_ID, walletAddress: TEST_WALLET };
-    validToken = generateToken(testUser.id, testUser.walletAddress);
+    validToken = generateToken(testUser.id, testUser.walletAddress, UserRole.USER);
 
     mockUserFindUnique.mockImplementation((args: any) => {
       const id = args?.where?.id;

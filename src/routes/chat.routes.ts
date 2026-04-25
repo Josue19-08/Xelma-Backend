@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import chatService from '../services/chat.service';
-import { authenticateUser } from '../middleware/auth.middleware';
+import { authenticateUser, AuthenticatedRequest } from '../middleware/auth.middleware';
 import { chatMessageRateLimiter } from '../middleware/rateLimiter.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { sendMessageSchema } from '../schemas/chat.schema';
@@ -14,11 +14,10 @@ const router = Router();
  * Body: { content: string }
  * Response: { success: true, message: ChatMessage }
  */
-router.post('/send', authenticateUser, chatMessageRateLimiter, validate(sendMessageSchema), async (req: Request, res: Response, next: NextFunction) => {
+router.post('/send', authenticateUser, chatMessageRateLimiter, validate(sendMessageSchema), (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { content } = req.body;
-    const userId = req.user!.userId;
-    const walletAddress = req.user!.walletAddress;
+    const { userId, walletAddress } = req.user;
 
     const message = await chatService.sendMessage(userId, walletAddress, content);
 
@@ -29,7 +28,7 @@ router.post('/send', authenticateUser, chatMessageRateLimiter, validate(sendMess
   } catch (error) {
     next(error);
   }
-});
+}) as any);
 
 /**
  * GET /api/chat/history

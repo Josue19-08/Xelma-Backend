@@ -3,6 +3,7 @@ import request from 'supertest';
 import { createApp } from '../index';
 import { generateToken } from '../utils/jwt.util';
 import { Express } from 'express';
+import { UserRole } from '@prisma/client';
 
 const USER_A_ID = 'pred-user-a-id';
 const USER_B_ID = 'pred-user-b-id';
@@ -46,14 +47,14 @@ describe('Predictions Routes - Auth Identity Binding (Issue #64)', () => {
       id: USER_B_ID,
       walletAddress: 'GUSER_B_PRED_TEST_BBBBBBBBBBBBBBBB',
     };
-    userAToken = generateToken(userA.id, userA.walletAddress);
-    userBToken = generateToken(userB.id, userB.walletAddress);
+    userAToken = generateToken(userA.id, userA.walletAddress, UserRole.USER);
+    userBToken = generateToken(userB.id, userB.walletAddress, UserRole.USER);
 
     mockUserFindUnique.mockImplementation((args: any) => {
       if (args?.where?.id === userA.id)
-        return Promise.resolve({ id: userA.id, walletAddress: userA.walletAddress, role: 'USER' });
+        return Promise.resolve({ id: userA.id, walletAddress: userA.walletAddress, role: UserRole.USER });
       if (args?.where?.id === userB.id)
-        return Promise.resolve({ id: userB.id, walletAddress: userB.walletAddress, role: 'USER' });
+        return Promise.resolve({ id: userB.id, walletAddress: userB.walletAddress, role: UserRole.USER });
       return Promise.resolve(null);
     });
   });
@@ -153,7 +154,7 @@ describe('Predictions Routes - Auth Identity Binding (Issue #64)', () => {
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Round ID is required');
+      expect(res.body.message).toContain('Round ID is required');
     });
 
     it('should reject missing amount', async () => {
@@ -166,7 +167,7 @@ describe('Predictions Routes - Auth Identity Binding (Issue #64)', () => {
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Invalid amount');
+      expect(res.body.message).toContain('Invalid amount');
     });
 
     it('should reject invalid amount (negative)', async () => {
@@ -180,7 +181,7 @@ describe('Predictions Routes - Auth Identity Binding (Issue #64)', () => {
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Invalid amount');
+      expect(res.body.message).toContain('Invalid amount');
     });
 
     it('should reject amount=0', async () => {
@@ -194,7 +195,7 @@ describe('Predictions Routes - Auth Identity Binding (Issue #64)', () => {
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Invalid amount');
+      expect(res.body.message).toContain('Invalid amount');
     });
 
     it('should require authentication', async () => {

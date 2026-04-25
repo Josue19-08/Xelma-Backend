@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "@jest/globals";
 import request from "supertest";
 import { Express } from "express";
+import { UserRole } from "@prisma/client";
 import { createApp } from "../index";
 import { generateToken } from "../utils/jwt.util";
 
@@ -58,8 +59,8 @@ describe("Notifications Routes & Ownership (Issue #78)", () => {
 
     userA = { id: USER_A_ID, walletAddress: "GNOTIF_USER_A_____________________________" };
     userB = { id: USER_B_ID, walletAddress: "GNOTIF_USER_B_____________________________" };
-    tokenA = generateToken(userA.id, userA.walletAddress);
-    tokenB = generateToken(userB.id, userB.walletAddress);
+    tokenA = generateToken(userA.id, userA.walletAddress, UserRole.USER);
+    tokenB = generateToken(userB.id, userB.walletAddress, UserRole.USER);
     notificationOwnedByA = NOTIF_A_ID;
     notificationOwnedByB = NOTIF_B_ID;
 

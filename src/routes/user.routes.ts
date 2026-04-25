@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
-import { authenticateUser } from "../middleware/auth.middleware";
+import { authenticateUser, AuthenticatedRequest } from "../middleware/auth.middleware";
 import { NotFoundError } from "../utils/errors";
 
 const router = Router();
@@ -12,9 +12,9 @@ const router = Router();
 router.get(
   "/profile",
   authenticateUser,
-  async (req: Request, res: Response, next: NextFunction) => {
+  (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user?.userId;
+      const userId = req.user.userId;
 
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -54,7 +54,7 @@ router.get(
     } catch (error) {
       next(error);
     }
-  },
+  }) as any,
 );
 
 /**
@@ -64,9 +64,9 @@ router.get(
 router.get(
   "/balance",
   authenticateUser,
-  async (req: Request, res: Response, next: NextFunction) => {
+  (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user?.userId;
+      const userId = req.user.userId;
 
       const user = await prisma.user.findUnique({
         where: { id: userId },
@@ -82,16 +82,16 @@ router.get(
     } catch (error) {
       next(error);
     }
-  },
+  }) as any,
 );
 
 /**
  * GET /api/user/stats
  * Returns detailed user statistics
  */
-router.get("/stats", authenticateUser, async (req: Request, res: Response, next: NextFunction) => {
+router.get("/stats", authenticateUser, (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user.userId;
 
     const stats = await prisma.userStats.findUnique({
       where: { userId },
@@ -112,7 +112,7 @@ router.get("/stats", authenticateUser, async (req: Request, res: Response, next:
   } catch (error) {
     next(error);
   }
-});
+}) as any);
 
 /**
  * PATCH /api/user/profile
@@ -121,9 +121,9 @@ router.get("/stats", authenticateUser, async (req: Request, res: Response, next:
 router.patch(
   "/profile",
   authenticateUser,
-  async (req: Request, res: Response, next: NextFunction) => {
+  (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user?.userId;
+      const userId = req.user.userId;
 
       const { nickname, avatarUrl, preferences } = req.body;
 
@@ -148,7 +148,7 @@ router.patch(
     } catch (error) {
       next(error);
     }
-  },
+  }) as any,
 );
 
 /**
@@ -158,9 +158,9 @@ router.patch(
 router.get(
   "/transactions",
   authenticateUser,
-  async (req: Request, res: Response, next: NextFunction) => {
+  (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user?.userId;
+      const userId = req.user.userId;
 
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -189,7 +189,7 @@ router.get(
     } catch (error) {
       next(error);
     }
-  },
+  }) as any,
 );
 
 /**

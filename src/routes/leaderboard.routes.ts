@@ -2,6 +2,7 @@ import { NextFunction, Request, Response, Router } from "express";
 import {
   authenticateUser,
   AuthRequest,
+  AuthenticatedRequest,
   optionalAuthentication,
 } from "../middleware/auth.middleware";
 import { validate } from "../middleware/validate.middleware";
@@ -160,7 +161,7 @@ router.post(
   "/batch",
   authenticateUser,
   validate(batchLeaderboardQuerySchema),
-  async (req: Request, res: Response, next: NextFunction) => {
+  (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { userIds } = req.body;
 
@@ -175,7 +176,7 @@ router.post(
     } catch (error) {
       next(error);
     }
-  },
+  }) as any,
 );
 
 export default router;

@@ -21,7 +21,7 @@ function createRateLimiter(opts: {
     legacyHeaders: false,
     handler: (req, res) => {
       const key = opts.keyGenerator ? opts.keyGenerator(req) : (req.ip || 'unknown');
-      const userId = (req as any).user?.userId || (req as any).userId;
+      const userId = req.user?.userId;
 
       // Track the hit in the background
       rateLimitMetricsService.recordHit({
@@ -63,7 +63,7 @@ export const chatMessageRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 5,
   message: 'You can only send 5 messages per minute. Please wait before sending another message.',
-  keyGenerator: (req) => (req as any).user?.userId || req.ip || 'unknown',
+  keyGenerator: (req) => req.user?.userId || req.ip || 'unknown',
   name: 'chat/message',
 });
 
@@ -72,7 +72,7 @@ export const predictionRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 10,
   message: 'Too many prediction submissions. Please wait before submitting another.',
-  keyGenerator: (req) => (req as any).user?.userId || req.ip || 'unknown',
+  keyGenerator: (req) => req.user?.userId || req.ip || 'unknown',
   name: 'prediction/submit',
 });
 

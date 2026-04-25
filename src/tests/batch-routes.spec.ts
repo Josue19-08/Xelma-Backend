@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it } from "@jest/globals";
 import { Express } from "express";
 import request from "supertest";
+import { UserRole } from "@prisma/client";
 import { createApp } from "../index";
 import { generateToken } from "../utils/jwt.util";
 
@@ -47,7 +48,7 @@ describe("Batch Predictions Routes", () => {
       id: USER_A_ID,
       walletAddress: "GBATCH_USER_A_TEST_AAAAAAAAAAAAAAAA",
     };
-    userAToken = generateToken(userA.id, userA.walletAddress);
+    userAToken = generateToken(userA.id, userA.walletAddress, UserRole.USER);
 
     mockUserFindUnique.mockResolvedValue(userA);
   });
@@ -265,7 +266,7 @@ describe("Batch Leaderboard Routes", () => {
       id: USER_A_ID,
       walletAddress: "GBATCH_USER_A_TEST_AAAAAAAAAAAAAAAA",
     };
-    userAToken = generateToken(userA.id, userA.walletAddress);
+    userAToken = generateToken(userA.id, userA.walletAddress, UserRole.USER);
 
     mockUserFindUnique.mockResolvedValue(userA);
   });

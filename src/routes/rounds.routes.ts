@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import roundService from '../services/round.service';
 import resolutionService from '../services/resolution.service';
-import { requireAdmin, requireOracle } from '../middleware/auth.middleware';
+import { requireAdmin, requireOracle, AuthenticatedRequest } from '../middleware/auth.middleware';
 import { adminRoundRateLimiter, oracleResolveRateLimiter } from '../middleware/rateLimiter.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { startRoundSchema, resolveRoundSchema } from '../schemas/rounds.schema';
@@ -107,7 +107,7 @@ const router = Router();
  *             -H "Authorization: Bearer $TOKEN" \\
  *             -d '{"mode":0,"startPrice":0.1234,"duration":300}'
  */
-router.post('/start', requireAdmin, adminRoundRateLimiter, validate(startRoundSchema), async (req: Request, res: Response, next: NextFunction) => {
+router.post('/start', requireAdmin, adminRoundRateLimiter, validate(startRoundSchema), (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { mode, startPrice, duration, priceRanges } = req.body;
         const gameMode = mode === 0 ? 'UP_DOWN' : 'LEGENDS';
@@ -123,13 +123,14 @@ router.post('/start', requireAdmin, adminRoundRateLimiter, validate(startRoundSc
                 endTime: round.endTime,
                 startPrice: round.startPrice,
                 sorobanRoundId: round.sorobanRoundId,
+                isSoroban: round.isSoroban,
                 priceRanges: round.priceRanges,
             },
         });
     } catch (error) {
         next(error);
     }
-});
+}) as any);
 
 /**
  * @swagger
@@ -297,7 +298,7 @@ router.get('/active', async (req: Request, res: Response, next: NextFunction) =>
  *             -H "Authorization: Bearer $TOKEN" \\
  *             -d '{"finalPrice":0.2345}'
  */
-router.post('/:id/resolve', requireOracle, oracleResolveRateLimiter, validate(resolveRoundSchema), async (req: Request, res: Response, next: NextFunction) => {
+router.post('/:id/resolve', requireOracle, oracleResolveRateLimiter, validate(resolveRoundSchema), (async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
         const { finalPrice } = req.body;
@@ -324,6 +325,6 @@ router.post('/:id/resolve', requireOracle, oracleResolveRateLimiter, validate(re
     } catch (error) {
         next(error);
     }
-});
+}) as any);
 
 export default router;

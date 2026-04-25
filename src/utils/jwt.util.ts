@@ -1,4 +1,5 @@
-import jwt, { SignOptions } from 'jsonwebtoken';
+import { UserRole } from '@prisma/client';
+import jwt from 'jsonwebtoken';
 import { JwtPayload } from '../types/auth.types';
 
 
@@ -20,12 +21,14 @@ const getJwtSecret = (): string => {
  * Generate a JWT token for authenticated user
  * @param userId User ID
  * @param walletAddress Stellar wallet address
+ * @param role User role
  * @returns Signed JWT token
  */
-export function generateToken(userId: string, walletAddress: string): string {
+export function generateToken(userId: string, walletAddress: string, role: UserRole): string {
   const payload: JwtPayload = {
     userId,
     walletAddress,
+    role,
   };
 
   // Pass options directly to avoid TypeScript type inference issues

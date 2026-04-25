@@ -25,7 +25,7 @@ describe('Rate Limit Visibility', () => {
         nickname: 'Admin',
       },
     });
-    adminToken = generateToken(adminUser.id, adminUser.walletAddress);
+    adminToken = generateToken(adminUser.id, adminUser.walletAddress, UserRole.ADMIN);
 
     // Create a mock regular user
     regularUser = await prisma.user.upsert({
@@ -37,7 +37,7 @@ describe('Rate Limit Visibility', () => {
         nickname: 'User',
       },
     });
-    userToken = generateToken(regularUser.id, regularUser.walletAddress);
+    userToken = generateToken(regularUser.id, regularUser.walletAddress, UserRole.USER);
   });
 
 

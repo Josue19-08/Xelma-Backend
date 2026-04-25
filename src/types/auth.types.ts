@@ -1,3 +1,6 @@
+import { Request } from "express";
+import { UserRole } from "@prisma/client";
+
 export interface ChallengeRequestBody {
   walletAddress: string;
 }
@@ -26,10 +29,13 @@ export interface ConnectResponse {
 export interface JwtPayload {
   userId: string;
   walletAddress: string;
-  iat?: number;
-  exp?: number;
+  role: UserRole;
 }
 
 export interface AuthRequest extends Request {
   user?: JwtPayload;
+}
+
+export interface AuthenticatedRequest extends Request {
+  user: JwtPayload;
 }

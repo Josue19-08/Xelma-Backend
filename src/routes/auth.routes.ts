@@ -348,7 +348,7 @@ router.post(
       }
 
       // Generate JWT token
-      const token = generateToken(user.id, user.walletAddress);
+      const token = generateToken(user.id, user.walletAddress, user.role);
 
       // Clean up old used challenges for this user (housekeeping)
       await prisma.authChallenge.deleteMany({

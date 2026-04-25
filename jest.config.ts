@@ -6,10 +6,7 @@ const config: Config = {
   roots: ["<rootDir>/src"],
   testMatch: ["**/*.spec.ts"],
   testPathIgnorePatterns: [
-    "/node_modules/",
-    "predictions.routes.spec.ts",
-    "concurrent-rounds.spec.ts",
-    "education-tip.route.spec.ts"
+    "/node_modules/"
   ],
   moduleFileExtensions: ["ts", "js", "json"],
   transform: {

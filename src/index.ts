@@ -10,6 +10,7 @@ import educationRoutes from './routes/education.routes';
 import leaderboardRoutes from './routes/leaderboard.routes';
 import notificationsRoutes from "./routes/notifications.routes";
 import priceOracle from './services/oracle';
+import sorobanService from './services/soroban.service';
 import websocketService from './services/websocket.service';
 import schedulerService from './services/scheduler.service';
 import roundSchedulerService from './services/round-scheduler.service';
@@ -97,11 +98,16 @@ export function createApp(): Express {
   });
 
   // Health check endpoint
-  app.get("/health", (req: Request, res: Response) => {
+  app.get("/health", async (req: Request, res: Response) => {
+    const sorobanHealth = await sorobanService.getHealth();
     res.json({
       status: "healthy",
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
+      services: {
+        soroban: sorobanHealth,
+        database: "connected", // Basic assumption if we reach here
+      }
     });
   });
 

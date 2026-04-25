@@ -11,8 +11,8 @@ const predictionPriceRangeSchema = z
 
 export const submitPredictionSchema = z
   .object({
-    roundId: z.string().min(1, "Round ID is required"),
-    amount: z.number().positive("Invalid amount"),
+    roundId: z.string({ error: "Round ID is required" }).min(1, "Round ID is required"),
+    amount: z.number({ error: "Invalid amount" }).positive("Invalid amount"),
     side: z.string().optional(),
     priceRange: predictionPriceRangeSchema.optional(),
   })

@@ -4,6 +4,7 @@ import request from 'supertest';
 import { createApp } from '../index';
 import { generateToken } from '../utils/jwt.util';
 import { Express } from 'express';
+import { UserRole } from '@prisma/client';
 
 describe('Concurrent Round Creation Prevention (Issue #66)', () => {
   let app: Express;
@@ -16,12 +17,12 @@ describe('Concurrent Round Creation Prevention (Issue #66)', () => {
     adminUser = await prisma.user.create({
       data: {
         walletAddress: 'GADMIN_CONCURRENT_TEST_AAAAAAAAAA',
-        role: 'ADMIN',
+        role: UserRole.ADMIN,
         virtualBalance: 1000,
       },
     });
 
-    adminToken = generateToken(adminUser.id, adminUser.walletAddress);
+    adminToken = generateToken(adminUser.id, adminUser.walletAddress, UserRole.ADMIN);
   });
 
   afterAll(async () => {

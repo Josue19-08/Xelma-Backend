@@ -3,29 +3,19 @@ import { verifyToken } from "../utils/jwt.util";
 import { UserRole } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import logger from "../utils/logger";
+import { AuthRequest, AuthenticatedRequest, JwtPayload } from "../types/auth.types";
 
 // Re-export UserRole for backwards compatibility
 export { UserRole };
 
-// Export AuthRequest type for use in routes
-export interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    walletAddress: string;
-    role: UserRole;
-  };
-}
+// Export AuthRequest and AuthenticatedRequest type for use in routes
+export { AuthRequest, AuthenticatedRequest };
 
 // Extend Express Request to include user
 declare global {
   namespace Express {
     interface Request {
-      user?: {
-        userId: string;
-        walletAddress: string;
-        role: UserRole;
-      };
-      userId?: string;
+      user?: JwtPayload;
     }
   }
 }
@@ -42,16 +32,14 @@ export const authenticateUser = async (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      (req as any).userId = undefined;
       res.status(401).json({ error: "No token provided" });
       return;
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    const decoded = verifyToken(token);
+    const decoded = verifyToken(token) as any;
 
     if (!decoded) {
-      (req as any).userId = undefined;
       res.status(401).json({ error: "Invalid or expired token" });
       return;
     }
@@ -67,7 +55,6 @@ export const authenticateUser = async (
     });
 
     if (!user) {
-      (req as any).userId = undefined;
       res.status(401).json({ error: "User not found" });
       return;
     }
@@ -78,12 +65,10 @@ export const authenticateUser = async (
       walletAddress: user.walletAddress,
       role: user.role,
     };
-    (req as any).userId = user.id;
 
     next();
   } catch (error) {
     logger.error("Authentication error:", error);
-    (req as any).userId = undefined;
     res.status(401).json({ error: "Authentication failed" });
   }
 };

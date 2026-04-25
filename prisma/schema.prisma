@@ -118,6 +118,7 @@ model Round {
   startTime      DateTime
   endTime        DateTime
   sorobanRoundId String?     @unique
+  isSoroban      Boolean     @default(false)
   poolUp         Decimal     @default(0) @db.Decimal(18, 8)
   poolDown       Decimal     @default(0) @db.Decimal(18, 8)
   priceRanges    Json?

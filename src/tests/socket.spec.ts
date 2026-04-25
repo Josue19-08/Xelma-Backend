@@ -16,6 +16,7 @@ import {
   PING_TIMEOUT,
 } from "../socket";
 import { generateToken } from "../utils/jwt.util";
+import { UserRole } from "@prisma/client";
 
 const SOCKET_USER_ID = "socket-test-user-id";
 const SOCKET_WALLET = "GSOCKET_TEST_USER___________________________";
@@ -98,11 +99,12 @@ describe("Socket.IO Auth & Room Events (Issue #78)", () => {
 
   beforeAll(async () => {
     testUser = { id: SOCKET_USER_ID, walletAddress: SOCKET_WALLET };
-    validToken = generateToken(testUser.id, testUser.walletAddress);
+    validToken = generateToken(testUser.id, testUser.walletAddress, UserRole.USER);
 
     mockUserFindUnique.mockResolvedValue({
       id: testUser.id,
       walletAddress: testUser.walletAddress,
+      role: UserRole.USER,
     });
 
     const app = createApp();

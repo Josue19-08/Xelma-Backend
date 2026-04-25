@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import request from 'supertest';
+import { UserRole } from '@prisma/client';
 import { createApp } from '../index';
 import { generateToken } from '../utils/jwt.util';
 import { Express } from 'express';
@@ -54,7 +55,7 @@ describe('Rounds Routes - Mode Validation (Issue #63)', () => {
       id: ADMIN_ID,
       walletAddress: 'GADMIN_MODE_TEST_AAAAAAAAAAAAAAAAA',
     };
-    adminToken = generateToken(adminUser.id, adminUser.walletAddress);
+    adminToken = generateToken(adminUser.id, adminUser.walletAddress, UserRole.ADMIN);
 
     mockUserFindUnique.mockResolvedValue({
       id: adminUser.id,

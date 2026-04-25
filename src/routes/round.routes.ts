@@ -1,9 +1,9 @@
-import { Router, Response } from "express";
+import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { Decimal } from "@prisma/client/runtime/library";
 import sorobanService from "../services/soroban.service";
 import resolutionService from "../services/resolution.service";
-import { authenticateToken, AuthRequest } from "../middleware/auth.middleware";
+import { authenticateToken, AuthenticatedRequest } from "../middleware/auth.middleware";
 import {
   StartRoundRequestBody,
   StartRoundResponse,
@@ -61,7 +61,7 @@ function priceToStroops(price: string): bigint {
 router.post(
   "/start",
   authenticateToken,
-  async (req: AuthRequest, res: Response) => {
+  (async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { startPrice, durationLedgers, mode }: StartRoundRequestBody =
         req.body;
@@ -77,13 +77,6 @@ router.post(
         return res.status(400).json({
           error: "Validation Error",
           message: "durationLedgers must be between 1 and 10000",
-        });
-      }
-
-      if (!req.user) {
-        return res.status(401).json({
-          error: "Unauthorized",
-          message: "Authentication required",
         });
       }
 
@@ -141,6 +134,7 @@ router.post(
           status: "ACTIVE",
           userId: req.user.userId,
           priceRanges: priceRanges ? JSON.parse(JSON.stringify(priceRanges)) : null,
+          isSoroban: mode === GameMode.UP_DOWN && sorobanService.isReady(),
         },
       });
 
@@ -177,13 +171,13 @@ router.post(
         message: "Failed to start round",
       });
     }
-  },
+  }) as any,
 );
 
 router.post(
   "/predict",
   authenticateToken,
-  async (req: AuthRequest, res: Response) => {
+  (async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { roundId, side, amount, mode, priceRange }: SubmitPredictionRequestBody =
         req.body;
@@ -213,13 +207,6 @@ router.post(
         return res.status(400).json({
           error: "Validation Error",
           message: "amount must be between 1 and 1000 vXLM",
-        });
-      }
-
-      if (!req.user) {
-        return res.status(401).json({
-          error: "Unauthorized",
-          message: "Authentication required",
         });
       }
 
@@ -374,13 +361,13 @@ router.post(
         message: "Failed to submit prediction",
       });
     }
-  },
+  }) as any,
 );
 
 router.post(
   "/resolve",
   authenticateToken,
-  async (req: AuthRequest, res: Response) => {
+  (async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { roundId, finalPrice, mode }: ResolveRoundRequestBody = req.body;
 
@@ -388,13 +375,6 @@ router.post(
         return res.status(400).json({
           error: "Validation Error",
           message: "roundId, finalPrice, and mode are required",
-        });
-      }
-
-      if (!req.user) {
-        return res.status(401).json({
-          error: "Unauthorized",
-          message: "Authentication required",
         });
       }
 
@@ -519,10 +499,10 @@ router.post(
         message: "Failed to resolve round",
       });
     }
-  },
+  }) as any,
 );
 
-router.get("/active", async (_req: AuthRequest, res: Response) => {
+router.get("/active", async (_req: Request, res: Response) => {
   try {
     const activeRound = await prisma.round.findFirst({
       where: { status: "ACTIVE" },
@@ -555,10 +535,11 @@ router.get("/active", async (_req: AuthRequest, res: Response) => {
     const response = {
       roundId: activeRound.id,
       startPrice: activeRound.startPrice,
-      poolUp,
-      poolDown,
+      poolUp: poolUp,
+      poolDown: poolDown,
       endTime: activeRound.endTime,
       mode: activeRound.mode,
+      isSoroban: activeRound.isSoroban,
     };
 
     return res.status(200).json(response);
