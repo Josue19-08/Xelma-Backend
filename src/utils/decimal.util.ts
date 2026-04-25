@@ -64,8 +64,8 @@ export function decLte(a: Decimal | number, b: Decimal | number): boolean {
   return toDecimal(a).lte(toDecimal(b));
 }
 
-/** Format a Decimal to a fixed-precision string (default 8 decimals) */
-export function decFixed(value: Decimal | number, places: number = 8): string {
+/** Format a Decimal to a fixed-precision string (default 2 decimals) */
+export function decFixed(value: Decimal | number, places: number = 2): string {
   return toDecimal(value).toFixed(places);
 }
 

@@ -81,7 +81,7 @@ export class ResolutionService {
         where: { id: roundId },
         data: {
           status: "RESOLVED",
-          endPrice: finalPriceDec,
+          endPrice: toNumber(finalPriceDec),
           resolvedAt,
         },
       });
